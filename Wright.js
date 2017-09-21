@@ -25,7 +25,7 @@ process.stdin.on('keypress', function (ch, key) {
    console.log("disable emergency");
   }
 });
-takecomm=true
+var takecomm=true
 var flying=false;
 // speeds can be anything between 0 and 1
 var yawSpeed = 0.5;

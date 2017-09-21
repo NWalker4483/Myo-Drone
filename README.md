@@ -11,7 +11,7 @@ This project uses a [Myo Armband](https://www.myo.com/start) running firmware ve
 |Fist|Land|
 |Wave Out|Roll Right|
 |Wave In|Roll Left|
-|Double Tap |*Barrel Roll*|
+|Double Tap |Barrel Roll|
 ## Prereqs
 Before attempting to run this project make sure that [Myo Connect Software](https://www.myo.com/start) is installed and setup.
 
