@@ -47,18 +47,16 @@ myMyo.on('arm_unsynced', function(){
 
 myMyo.on('pose', function(pose) {
   //Checks that a pose is held for 3/4s of a second before executing
-  function CheckLegal(time){
-    hut=true
-    while (hut){
+  takecomm=true
+  hut=true
+  while (hut){
   myMyo.on('pose_off',function(){
     //myMyo.trigger('pose','rest')
-    return false;
-  })
-  return true;
-  setTimeout(function(){hut=false},750)
-}
-}
-  takecomm=CheckLegal()
+    takecomm=false;
+  })}
+  setTimeout(function(){
+
+hut=false
   // takeoff
   if (takecomm){
   if (pose == poses[0])
@@ -94,5 +92,5 @@ myMyo.on('pose', function(pose) {
     console.log("right");
     client.right(rollSpeed); 
   }
-  }});
+  }},750)});
 
