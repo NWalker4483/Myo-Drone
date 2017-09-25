@@ -19,6 +19,10 @@ process.stdin.on('keypress', function (ch, key) {
     console.log("landing");
     client.land();
   }
+  else if (key.name == 't') {
+    console.log("takeoff");
+    client.takeoff();
+  }
   // press 'd' to exit emergency state
   else if (key.name == 'd') {
    client.disableEmergency();
@@ -36,8 +40,8 @@ myMyo.on('connect', function() {
   console.log("I'm Alive");
 });
 console.log("begin");
-myMyo.setLockingPolicy('none')  
-myMyo.on('lock', function(){ myMyo.unlock('hold') })
+
+myMyo.unlock('hold')
 
 //Lands if Myo is removed or unresponsive
 myMyo.on('arm_unsynced', function(){
@@ -45,18 +49,12 @@ myMyo.on('arm_unsynced', function(){
   land
   })
 
-myMyo.on('pose', function(pose) {
+myMyo.on('pose', function(pose,edge) {
   //Checks that a pose is held for 3/4s of a second before executing
   takecomm=true
-  hut=true
-  while (hut){
-  myMyo.on('pose_off',function(){
-    //myMyo.trigger('pose','rest')
-    takecomm=false;
-  })}
-  setTimeout(function(){
-
-hut=false
+  
+ console.WriteLine("hi")
+ 
   // takeoff
   if (takecomm){
   if (pose == poses[0])
@@ -82,15 +80,22 @@ hut=false
   }
   else if ((pose == poses[3])){
 
-    console.log("left");
-    client.left(rollSpeed);
+    myMyo.timer(edge, 500, function(){
+      console.log("left");
+      client.left(rollSpeed)
+      client.after(4000, function() {
+        client.stop(); 
+    })
+    })
     
     
   }
   else if ((pose == poses[4])){
-
+    myMyo.timer(edge, 500, function(){
     console.log("right");
-    client.right(rollSpeed); 
-  }
-  }},750)});
-
+    client.right(rollSpeed)
+    client.after(4000, function() {
+      client.stop(); 
+  })
+  })}};
+});
