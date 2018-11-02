@@ -1,14 +1,15 @@
 var arDrone = require('ar-drone');
 var keypress = require('keypress');
 var client = arDrone.createClient();
-var Myo = require('myo')
-var myMyo = Myo.create();
+var myMyo = require('myo');
+myMyo.connect('com.stolksdorf.myAwesomeApp', require('ws'));
 
+//var myMyo = Myo.create();
 
 keypress(process.stdin);
 process.stdin.setRawMode(true);
 
-process.stdin.on('keypress', function (ch, key) {
+process.stdin.on('keypress', function (key) {
   // press ctrl + z to land the drone and exit the program
   if (key && key.ctrl && key.name == 'z' ) {
     client.land(); 
@@ -29,73 +30,117 @@ process.stdin.on('keypress', function (ch, key) {
    console.log("disable emergency");
   }
 });
+
+
 var takecomm=true
-var flying=false;
+var enabled_control=false;
 // speeds can be anything between 0 and 1
 var yawSpeed = 0.5;
 var pitchSpeed = 0.5;
 var rollSpeed = 0.5;
-poses=['fist','fingers_spread','double_tap','wave_in','wave_out']
-myMyo.on('connect', function() {
-  console.log("I'm Alive");
-});
-console.log("begin");
+var y_data = [];
+var x_data = [];
+var z_data = [];
+var x_zero = 0;
+var y_zero = 0;
+var z_zero = 0;
 
-myMyo.unlock('hold')
+setInterval(function(){
+  x_data = []
+  y_data = []
+  z_data = []
+ }, 3000);
+
+function reset(){
+  var new_zeroes = myMyo.myos[0]["lastIMU"]['gyroscope'];
+  console.log('Reset Zeroes')
+  x_zero = new_zeroes['x'];
+  y_zero = new_zeroes['y'];
+  z_zero = new_zeroes['z'];
+}
+ setInterval(function(){
+   if(!enabled_control){
+  reset();
+}}, 1000);
+
+myMyo.on('connected', function() {
+  console.log("I'm Alive");
+  myMyo.setLockingPolicy('none');
+  console.log("And free");
+});
+
+myMyo.on('gyroscope', function(data){  
+  if (enabled_control){
+    //////////////// IGNORE BELOW //////////////////////////
+    if (x_data.length < 10){
+      x_data.push(data['x'].toPrecision(3));
+    }
+    else{
+      x_data.shift();
+      x_data.push(data['x'].toPrecision(3));
+    }
+    values = x_data;
+    sum = values.reduce(add, 0);
+    var xavg = (sum / values.length).toPrecision(3);
+    ////////////////// IGNORE ABOVE ///////////////////////////
+    function add(a, b) {
+        return parseInt(a) + parseInt(b);
+    }
+    console.log('x: ', (xavg));
+
+    if (xavg > 150){
+      console.log("Rolling Left");
+      client.left((xavg/10)*rollSpeed);
+      client.after(2000, function() {
+        client.stop(); 
+      })
+      this.vibrate('short');
+    }
+    else if (xavg < -150) {
+      console.log("Rolling Right");
+      client.right((xavg/10)*rollSpeed);
+      client.after(2000, function() {
+        client.stop();
+      })
+      this.vibrate('short');
+    }
+  };
+});
 
 //Lands if Myo is removed or unresponsive
 myMyo.on('arm_unsynced', function(){
   console.log("Houston we have a problem")
-  land
+  console.log("Arm unsynced")
+  client.land();
   })
 
-myMyo.on('pose', function(pose,edge) {
-  //Checks that a pose is held for 3/4s of a second before executing
-  takecomm=true
-  
- console.WriteLine("hi")
- 
-  // takeoff
-  if (takecomm){
-  if (pose == poses[0])
+myMyo.on('pose_off', function(pose,edge) {
+  if ((pose != 'double_tap') && (pose != 'fingers_spread')) {
+    client.stop();
+  console.log("Pose Off: ",pose);
+  }
+  if (pose == 'fist'){
+    enabled_control = false
+  }
+});
+myMyo.on('pose', function(pose) {
+  if (pose == 'fist')
   {
-    console.log("landing")
-    client.land()
+    enabled_control = true;
   }
   // landing
-  if ((pose == poses[1]))
+  if ((pose == 'fingers_spread'))
   {
+    console.log("landing flight");
+    client.land();
+  }
+
+  else if ((pose == 'double_tap')){
+
     client.disableEmergency(); // in case drone crashed on previous run
     flying = true; 
-    console.log("taking flight");
-    client.takeoff();
-    }
-  else if ((pose == poses[2])){
-
-    flying = true;
-    console.log("Do A Barrel Roll");
-    client.animate('flipBehind',1000);
-    
-    
-  }
-  else if ((pose == poses[3])){
-
-    myMyo.timer(edge, 500, function(){
-      console.log("left");
-      client.left(rollSpeed)
-      client.after(4000, function() {
-        client.stop(); 
-    })
-    })
-    
-    
-  }
-  else if ((pose == poses[4])){
-    myMyo.timer(edge, 500, function(){
-    console.log("right");
-    client.right(rollSpeed)
-    client.after(4000, function() {
-      client.stop(); 
-  })
-  })}};
+    console.log("Takeoff Roll");
+    client.takeoff()
+    //client.animate('flipBehind',1000);d   
+  };
 });
